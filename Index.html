@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="hi" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* Basic Styles */
+        body { font-family: 'Inter', sans-serif; }
+        .scrollbar-thin::-webkit-scrollbar { width: 5px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: #f1f1f1; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #888; border-radius: 5px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Light Theme */
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --message-sent-bg: #dcf8c6;
+            --message-received-bg: #ffffff;
+            --icon-color: #64748b;
+        }
+
+        /* Dark Theme */
+        html.dark {
+            --bg-primary: #0b1426;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --message-sent-bg: #056162;
+            --message-received-bg: #334155;
+            --icon-color: #94a3b8;
+        }
+
+        /* Apply Theme Variables */
+        body { background-color: var(--bg-primary); color: var(--text-primary); }
+        .bg-theme-secondary { background-color: var(--bg-secondary); }
+        .bg-theme-tertiary { background-color: var(--bg-tertiary); }
+        .text-theme-primary { color: var(--text-primary); }
+        .text-theme-secondary { color: var(--text-secondary); }
+        .border-theme { border-color: var(--border-color); }
+        .message-bubble-sent { background-color: var(--message-sent-bg); }
+        .message-bubble-received { background-color: var(--message-received-bg); }
+        .icon-theme { color: var(--icon-color); }
+        .hover\:bg-theme-tertiary:hover { background-color: var(--bg-tertiary); }
+        .message-content img, .message-content video, .message-content .giphy-gif { max-width: 300px; border-radius: 0.5rem; }
+        .toggle-checkbox:checked { right: 0; border-color: #48bb78; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #48bb78; }
+        .sent-icon { color: #888; }
+        .delivered-icon { color: #51a8ff; }
+        .seen-icon { color: #4ade80; }
+
+        /* Fullscreen Image Modal Styles */
+        .fullscreen-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .fullscreen-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+        .fullscreen-modal .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            z-index: 101;
+        }
+
+        /* Giphy Modal */
+        #giphy-modal {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 90;
+        }
+        #giphy-content {
+            background-color: var(--bg-secondary);
+            width: 90%;
+            max-width: 600px;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #giphy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.5rem;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+        #giphy-grid img {
+            cursor: pointer;
+            border-radius: 0.25rem;
+            transition: transform 0.2s;
+        }
+        #giphy-grid img:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="bg-theme-primary">
+    <div id="loading-spinner" class="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+        <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+    </div>
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center hidden">
+        <div class="max-w-md w-full bg-theme-secondary p-8 rounded-lg shadow-lg">
+            <h2 id="auth-title" class="text-2xl font-bold text-center text-theme-primary mb-6">Login</h2>
+            <form id="auth-form">
+                <input id="email" type="email" placeholder="Email" class="w-full px-4 py-2 mb-4 border border-theme bg-theme-secondary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                <input id="password" type="password" placeholder="Password" class="w-full px-4 py-2 mb-4 border border-theme bg-theme-secondary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                <button type="submit" id="auth-button" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-200">Login</button>
+            </form>
+            <p id="auth-error" class="text-center text-sm text-red-500 mt-2 hidden"></p>
+            <p class="text-center text-sm text-theme-secondary mt-4">
+                <span id="auth-toggle-text">Don't have an account?</span>
+                <a href="#" id="auth-toggle-link" class="text-blue-500 hover:underline">Sign Up</a>
+            </p>
+        </div>
+    </div>
+    <div id="main-app" class="hidden h-screen w-full md:flex">
+        <div id="chat-list-container" class="w-full md:w-1/3 lg:w-1/4 bg-theme-secondary border-r border-theme flex flex-col">
+            <div class="p-4 border-b border-theme flex justify-between items-center">
+                <h2 class="text-xl font-bold">Chats</h2>
+                <div id="user-profile" class="relative">
+                    <img id="user-avatar" src="https://placehold.co/40x40/EFEFEF/AAAAAA&text=U" class="w-10 h-10 rounded-full cursor-pointer">
+                    <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-theme-secondary rounded-md shadow-lg py-1 z-20 border border-theme">
+                        <a href="#" id="theme-toggle-button" class="block px-4 py-2 text-sm text-theme-primary hover:bg-theme-tertiary"><i class="fas fa-sun mr-2"></i><span>Switch to Dark Mode</span></a>
+                        <a href="#" id="edit-profile-button" class="block px-4 py-2 text-sm text-theme-primary hover:bg-theme-tertiary"><i class="fas fa-user-edit mr-2"></i>Edit Profile</a>
+                        <a href="#" id="admin-panel-button" class="hidden block px-4 py-2 text-sm text-theme-primary hover:bg-theme-tertiary"><i class="fas fa-user-shield mr-2"></i>Admin Panel</a>
+                        <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-theme-primary hover:bg-theme-tertiary"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-2 border-b border-theme">
+                 <button id="chat-with-admin-btn" class="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition duration-200 flex items-center justify-center">
+                    <i class="fas fa-headset mr-2"></i> Chat with Support
+                </button>
+            </div>
+
+            <div id="user-list" class="flex-1 overflow-y-auto scrollbar-thin">
+            </div>
+        </div>
+
+        <div id="chat-window-wrapper" class="flex-1 flex-col bg-theme-primary hidden md:flex">
+            <div id="welcome-screen" class="flex flex-col items-center justify-center h-full text-center">
+                <i class="fas fa-comments text-6xl text-gray-400"></i>
+                <h2 class="mt-4 text-2xl font-semibold text-theme-primary">Welcome to Chat App</h2>
+                <p class="text-theme-secondary">Select a chat to start messaging</p>
+            </div>
+
+            <div id="chat-window" class="hidden flex-1 flex flex-col h-full">
+                <div class="flex items-center justify-between p-3 border-b border-theme bg-theme-secondary">
+                    <div class="flex items-center">
+                        <button id="back-to-chats-btn" class="md:hidden mr-4 p-2 text-theme-secondary hover:text-theme-primary"><i class="fas fa-arrow-left text-xl"></i></button>
+                        <img id="chat-header-avatar" src="https://placehold.co/48x48" class="w-12 h-12 rounded-full mr-4 cursor-pointer">
+                        <div>
+                            <h3 id="chat-header-name" class="font-semibold text-lg"></h3>
+                            <p id="chat-header-status" class="text-sm text-green-500"></p>
+                            <p id="typing-indicator" class="text-sm text-theme-secondary h-4"></p>
+                        </div>
+                    </div>
+                    <button id="delete-chat-btn" class="bg-red-500 text-white py-2 px-4 rounded-lg text-sm hover:bg-red-600 transition duration-200"><i class="fas fa-trash-alt mr-2"></i>Delete Chat</button>
+                </div>
+
+                <div id="messages-container" class="flex-1 p-4 overflow-y-auto scrollbar-thin">
+                </div>
+
+                <div class="bg-theme-secondary p-4 border-t border-theme">
+                    <div id="reply-bar" class="hidden flex items-center justify-between p-2 mb-2 bg-theme-tertiary rounded-lg">
+                        <div class="flex-1">
+                            <p class="text-xs text-blue-500">Replying to:</p>
+                            <p id="reply-text" class="text-sm font-semibold truncate"></p>
+                        </div>
+                        <button id="cancel-reply-btn" class="text-theme-secondary hover:text-red-500"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div id="emoji-sticker-picker" class="hidden grid grid-cols-8 gap-2 p-2 bg-theme-tertiary rounded-lg mb-2 max-h-[150px] overflow-y-auto scrollbar-thin">
+</div>
+                    <div class="flex items-center gap-3">
+                        <button id="emoji-sticker-btn" class="p-2 icon-theme hover:text-blue-500 flex-shrink-0"><i class="fas fa-smile text-xl"></i></button>
+                        <button id="giphy-btn" class="p-2 icon-theme hover:text-blue-500 flex-shrink-0"><i class="fas fa-images text-xl"></i></button>
+
+                        <div class="flex-1 flex items-center border border-theme bg-theme-secondary rounded-full">
+                            <input id="message-input" type="text" placeholder="Type a message..." class="flex-1 px-4 py-2 bg-transparent border-none rounded-full focus:outline-none focus:ring-0">
+                            <button id="send-btn" class="bg-blue-500 text-white w-9 h-9 flex-shrink-0 mr-1 rounded-full hover:bg-blue-600 flex items-center justify-center"><i class="fas fa-paper-plane text-sm"></i></button>
+                        </div>
+
+                        <div class="relative flex-shrink-0">
+                            <button id="more-options-btn" class="p-2 icon-theme hover:text-blue-500"><i class="fas fa-paperclip text-xl"></i></button>
+                            <div id="more-options-menu" class="hidden absolute bottom-full right-0 mb-2 w-max bg-theme-secondary rounded-md shadow-lg py-1 z-20 border border-theme">
+                                <button id="attach-file-btn" class="w-full flex items-center px-4 py-2 text-sm text-theme-primary hover:bg-theme-tertiary text-left"><i class="fas fa-file-image w-4 mr-3"></i>Attach File</button>
+                                <button id="record-voice-btn" class="w-full flex items-center px-4 py-2 text-sm text-theme-primary hover:bg-theme-tertiary text-left"><i class="fas fa-microphone w-4 mr-3"></i>Record Voice</button>
+                            </div>
+                        </div>
+                        <input type="file" id="file-input" class="hidden" accept="image/*,video/*">
+                    </div>
+                    <p id="recording-status" class="text-xs text-red-500 mt-1 hidden"><i class="fas fa-circle text-red-500 animate-pulse"></i> Recording...</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+  <div id="edit-profile-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30 p-4">
+        <div class="bg-theme-secondary rounded-lg shadow-xl w-full max-w-sm">
+            <div class="flex justify-between items-center p-4 border-b border-theme">
+                <h3 class="text-xl font-bold">Edit Profile</h3>
+                <button id="close-edit-profile-modal" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <div class="p-4">
+                <div class="flex flex-col items-center mb-4">
+                    <img id="profile-avatar-preview" src="" class="w-24 h-24 rounded-full mb-2">
+                    <button id="change-avatar-btn" class="text-blue-500 hover:underline text-sm">Change Photo</button>
+                    <input type="file" id="avatar-input" class="hidden" accept="image/*">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Display Name</label>
+                    <input type="text" id="display-name-input" class="w-full px-3 py-2 border border-theme bg-theme-secondary rounded-lg">
+                </div>
+                <button id="save-profile-btn" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="fullscreen-image-modal" class="fullscreen-modal hidden" onclick="this.classList.add('hidden');">
+        <span class="close-btn" onclick="event.stopPropagation(); this.parentNode.classList.add('hidden');">&times;</span>
+        <img id="fullscreen-image" src="" alt="Full-screen image" onclick="event.stopPropagation();">
+    </div>
+
+    <div id="giphy-modal" class="hidden">
+        <div id="giphy-content">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold">Search GIFs</h3>
+                <button id="close-giphy-modal" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <input type="text" id="giphy-search-input" placeholder="Search for GIFs..." class="w-full px-4 py-2 mt-4 border border-theme bg-theme-secondary rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div id="giphy-grid"></div>
+        </div>
+    </div>
+    <div id="admin-panel" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30 p-4">
+        <div class="bg-theme-secondary rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-theme">
+                <h3 class="text-xl font-bold"><i class="fas fa-user-shield mr-2"></i>Admin Panel</h3>
+                <button id="close-admin-panel" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <div class="flex-1 flex overflow-hidden">
+                <div class="w-1/4 border-r border-theme p-2">
+                    <nav class="flex flex-col space-y-1">
+                        <a href="#users" class="admin-tab-link bg-theme-tertiary text-theme-primary font-semibold flex items-center px-3 py-2 rounded-md"><i class="fas fa-users mr-3"></i>Users</a>
+                        <a href="#content" class="admin-tab-link text-theme-secondary hover:bg-theme-tertiary hover:text-theme-primary flex items-center px-3 py-2 rounded-md"><i class="fas fa-photo-video mr-3"></i>Content</a>
+                        <a href="#registrations" class="admin-tab-link text-theme-secondary hover:bg-theme-tertiary hover:text-theme-primary flex items-center px-3 py-2 rounded-md"><i class="fas fa-user-plus mr-3"></i>Registrations</a>
+                    </nav>
+                </div>
+                 <div class="w-3/4 p-4 overflow-y-auto">
+                    <div id="admin-tab-users" class="admin-tab-content">
+                         <h4 class="text-lg font-semibold mb-2">Manage Users</h4>
+                        <div id="admin-user-list" class="space-y-2">
+                            </div>
+                    </div>
+                     <div id="admin-tab-content" class="admin-tab-content hidden">
+                         <h4 class="text-lg font-semibold mb-2">Stickers & Emojis</h4>
+                         <div class="p-4 bg-theme-tertiary rounded-lg">
+                            <h5 class="font-semibold mb-2">Add New Sticker/Emoji</h5>
+                            <div class="flex items-center space-x-2 mb-4">
+                                <input type="text" id="new-sticker-url" placeholder="Paste URL or Emoji" class="flex-1 px-3 py-2 border border-theme bg-theme-secondary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <button id="add-sticker-btn" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600">Add</button>
+                            </div>
+                            <h5 class="font-semibold mb-2">Current Stickers & Emojis</h5>
+                            <div id="sticker-list-container" class="grid grid-cols-8 gap-2">
+                            </div>
+                         </div>
+                    </div>
+                    <div id="admin-tab-registrations" class="admin-tab-content hidden">
+                        <h4 class="text-lg font-semibold mb-2">Registrations</h4>
+                        <div class="space-y-4 p-4 bg-theme-tertiary rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <label class="font-medium text-theme-primary">Allow New Registrations</label>
+                                    <p class="text-sm text-theme-secondary">Allow new users to sign up.</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <span id="registration-status-text" class="text-sm font-semibold mr-3">ON</span>
+                                    <div class="relative inline-block w-12 align-middle select-none">
+                                        <input type="checkbox" name="registration-toggle" id="registration-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                        <label for="registration-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+        // Global App Config - will be populated from serverless function
+        let APP_CONFIG = {};
+
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query, addDoc, serverTimestamp, orderBy, getDocs, writeBatch, updateDoc, deleteDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getDatabase, ref, onValue, set, onDisconnect, remove, off } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        
+        // Global Firebase instances - will be initialized after fetching config
+        let auth, db, rtdb;
+
+        // --- Main function to fetch config and initialize the app ---
+        async function initializeAppAndAuth() {
+            try {
+                // Fetch configuration from the Netlify serverless function
+                const response = await fetch('/.netlify/functions/config');
+                if (!response.ok) {
+                    throw new Error('Could not load app configuration.');
+                }
+                APP_CONFIG = await response.json();
+
+                // Initialize Firebase with the fetched config
+                const app = initializeApp(APP_CONFIG.firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                rtdb = getDatabase(app);
+                
+                // Now that Firebase is initialized, setup the auth state listener
+                setupAuthStateListener();
+
+            } catch (error) {
+                console.error("Initialization Error:", error);
+                document.getElementById('loading-spinner').innerHTML = '<p class="text-red-500">Failed to load app. Please try again later.</p>';
+            }
+        }
+
+        // Call the main initialization function when the script loads
+        initializeAppAndAuth();
+        
+        function setupAuthStateListener() {
+             onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    setChatState('currentUser', user);
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDocSnap = await getDoc(userDocRef);
+
+                    const sessionRef = ref(rtdb, `activeSessions/${user.uid}`);
+                    onValue(sessionRef, async (snapshot) => {
+                        const dbToken = snapshot.val();
+                        const localToken = localStorage.getItem('sessionToken');
+                        
+                        if (localToken && dbToken && dbToken !== localToken) {
+                            console.log("Logged out from another device.");
+                            alert("Your account has been logged in from another device. You will be logged out here.");
+                            await signOut(auth);
+                            return;
+                        }
+                    });
+
+                    if (!localStorage.getItem('sessionToken')) {
+                        await updateSessionToken(user.uid);
+                    }
+
+                    if (userDocSnap.exists()) {
+                        setChatState('isAdmin', userDocSnap.data().isAdmin || false);
+                    } else {
+                        const newUserIsAdmin = user.email === APP_CONFIG.ADMIN_EMAIL;
+                        await setDoc(userDocRef, {
+                            uid: user.uid,
+                            email: user.email,
+                            displayName: user.email.split('@')[0],
+                            photoURL: `https://ui-avatars.com/api/?name=${user.email.split('@')[0]}&background=random`,
+                            isAdmin: newUserIsAdmin
+                        });
+                        setChatState('isAdmin', newUserIsAdmin);
+                    }
+
+                    setupPresence();
+                    listenToSiteSettings();
+                    loadUI();
+                    editProfileModalLogic();
+                    messageReplyLogic();
+                    themeToggleLogic();
+                    fullscreenImageLogic();
+                    adminPanelLogic();
+                    voiceRecordingLogic();
+                } else {
+                    setChatState('currentUser', null);
+                    setChatState('isAdmin', false);
+                    localStorage.removeItem('sessionToken');
+                    showAuthScreen();
+                }
+            });
+        }
+
+        // Global State
+        let currentUser = null;
+        let isAdmin = false;
+        let currentChatUser = null;
+        let currentChatId = null;
+        let unsubscribeMessages = null;
+        let typingTimeout = null;
+        let typingListenerRef = null;
+
+        // Function to update state variables
+        function setChatState(key, value) {
+            if (key === 'currentUser') currentUser = value;
+            if (key === 'isAdmin') isAdmin = value;
+            if (key === 'currentChatUser') currentChatUser = value;
+            if (key === 'currentChatId') currentChatId = value;
+            if (key === 'unsubscribeMessages') unsubscribeMessages = value;
+            if (key === 'typingTimeout') typingTimeout = value;
+            if (key === 'typingListenerRef') typingListenerRef = value;
+        }
+
+        // Presence and Status
+        function setupPresence() {
+            if (!currentUser) return;
+            const userStatusDatabaseRef = ref(rtdb, '/status/' + currentUser.uid);
+            const userStatusFirestoreRef = doc(db, 'users', currentUser.uid);
+            const isOfflineForRTDB = { state: 'offline' };
+            const isOnlineForRTDB = { state: 'online' };
+            const isOfflineForFirestore = { isOnline: false, lastSeen: serverTimestamp() };
+            const isOnlineForFirestore = { isOnline: true };
+            const connectedRef = ref(rtdb, '.info/connected');
+            onValue(connectedRef, (snap) => {
+                if (snap.val() === true) {
+                    set(userStatusDatabaseRef, isOnlineForRTDB);
+                    updateDoc(userStatusFirestoreRef, isOnlineForFirestore);
+                    onDisconnect(userStatusDatabaseRef).set(isOfflineForRTDB).then(() => {
+                        updateDoc(userStatusFirestoreRef, isOfflineForFirestore);
+                    });
+                }
+            });
+        }
+
+        let siteSettings = {};
+        function listenToSiteSettings() {
+            const settingsDocRef = doc(db, "siteSettings", "config");
+            onSnapshot(settingsDocRef, (docSnap) => {
+                siteSettings = docSnap.exists() ? docSnap.data() : { registrationsEnabled: true, stickers: [] };
+                if (isAdmin){
+                    document.getElementById('registration-toggle').checked = siteSettings.registrationsEnabled;
+                }
+                const authToggleText = document.getElementById('auth-toggle-text');
+                const authToggleLink = document.getElementById('auth-toggle-link');
+                if (!siteSettings.registrationsEnabled) {
+                    authToggleText.classList.add('hidden');
+                    authToggleLink.classList.add('hidden');
+                } else {
+                    authToggleText.classList.remove('hidden');
+                    authToggleLink.classList.remove('hidden');
+                }
+            });
+        }
+  async function loadUserList() {
+            const userListEl = document.getElementById('user-list');
+            const q = query(collection(db, "users"));
+            onSnapshot(q, (snapshot) => {
+                userListEl.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const user = doc.data();
+                    if (user.uid === currentUser.uid) return;
+                    const userEl = document.createElement('div');
+                    userEl.className = 'flex items-center p-3 hover:bg-theme-tertiary cursor-pointer';
+                    userEl.dataset.uid = user.uid;
+                    userEl.innerHTML = `
+                        <div class="relative">
+                            <img src="${user.photoURL}" class="w-12 h-12 rounded-full mr-4">
+                            ${user.isOnline ? '<span class="absolute bottom-0 right-4 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>' : ''}
+                        </div>
+                        <div>
+                            <h4 class="font-semibold">${user.displayName}</h4>
+                            <p class="text-sm text-theme-secondary">${user.isAdmin ? 'Admin' : 'User'}</p>
+                        </div>
+                    `;
+                    userEl.addEventListener('click', () => startChat(user));
+                    userListEl.appendChild(userEl);
+                });
+            });
+        }
+
+        async function startChat(otherUser) {
+            setChatState('currentChatUser', otherUser);
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('chat-window').classList.remove('hidden');
+
+            if (window.innerWidth < 768) {
+                document.getElementById('chat-list-container').classList.add('hidden');
+                document.getElementById('chat-window-wrapper').classList.remove('hidden');
+            }
+
+            document.getElementById('chat-header-avatar').src = otherUser.photoURL;
+            document.getElementById('chat-header-name').textContent = otherUser.displayName;
+
+            const userStatusRef = ref(rtdb, '/status/' + otherUser.uid);
+            onValue(userStatusRef, (snap) => {
+                const statusEl = document.getElementById('chat-header-status');
+                if (snap.exists() && snap.val().state === 'online') {
+                    statusEl.textContent = 'Online';
+                    statusEl.className = 'text-sm text-green-500';
+                } else {
+                    statusEl.textContent = 'Offline';
+                    statusEl.className = 'text-sm text-gray-400';
+                }
+            });
+
+            const uids = [currentUser.uid, otherUser.uid].sort();
+            setChatState('currentChatId', uids.join('_'));
+
+            const messagesRef = collection(db, 'chats', currentChatId, 'messages');
+            const q = query(messagesRef);
+            const querySnapshot = await getDocs(q);
+            const batch = writeBatch(db);
+            querySnapshot.forEach(docSnap => {
+                const msg = docSnap.data();
+                if (msg.senderUid !== currentUser.uid && !msg.seenAt) {
+                    batch.update(doc(messagesRef, docSnap.id), { seenAt: serverTimestamp() });
+                }
+            });
+            await batch.commit();
+
+            loadMessages();
+
+            const typingIndicatorEl = document.getElementById('typing-indicator');
+            if (typingListenerRef) {
+                off(typingListenerRef);
+            }
+            setChatState('typingListenerRef', ref(rtdb, `typing/${currentChatId}/${currentChatUser.uid}`));
+            onValue(typingListenerRef, (snapshot) => {
+                if (snapshot.exists() && snapshot.val() === true) {
+                    typingIndicatorEl.textContent = 'typing...';
+                } else {
+                    typingIndicatorEl.textContent = '';
+                }
+            });
+        }
+
+        // Messages and media
+        function loadMessages() {
+            if (unsubscribeMessages) unsubscribeMessages();
+            const messagesContainer = document.getElementById('messages-container');
+            messagesContainer.innerHTML = '';
+            const messagesRef = collection(db, 'chats', currentChatId, 'messages');
+            const q = query(messagesRef, orderBy('timestamp'));
+
+            setChatState('unsubscribeMessages', onSnapshot(q, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const msg = change.doc.data();
+                    if (change.type === "added") {
+                        const tempMsg = messagesContainer.querySelector(`[data-temp-content="${msg.content}"]`);
+                        if (tempMsg) {
+                            tempMsg.dataset.id = change.doc.id;
+                            tempMsg.dataset.tempContent = '';
+                            updateMessageStatus(tempMsg, msg);
+                        } else {
+                            displayMessage(msg, change.doc.id);
+                        }
+                    }
+                    if (change.type === "modified") {
+                        const existingMsg = messagesContainer.querySelector(`[data-id="${change.doc.id}"]`);
+                        if (existingMsg) {
+                            updateMessageStatus(existingMsg, msg);
+                        }
+                    }
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }));
+        }
+
+        async function displayMessage(msg, docId) {
+            const messagesContainer = document.getElementById('messages-container');
+            const isSent = msg.senderUid === currentUser.uid;
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = `flex mb-4 ${isSent ? 'justify-end' : 'justify-start'}`;
+            messageWrapper.dataset.id = docId;
+            if (!docId) messageWrapper.dataset.tempContent = msg.content;
+            let contentHtml = '';
+
+            if (msg.replyToId) {
+                const originalMsgRef = doc(db, 'chats', currentChatId, 'messages', msg.replyToId);
+                const originalMsgSnap = await getDoc(originalMsgRef);
+                const originalMsgContent = originalMsgSnap.exists() ? (originalMsgSnap.data().content || "File/Media") : "Original message not found";
+                const replyHtml = `<div class="p-2 border-l-4 border-blue-500 mb-2 bg-gray-100 dark:bg-gray-700 rounded">
+                    <p class="text-xs text-blue-500">Replying to:</p>
+                    <p class="text-sm truncate">${originalMsgContent}</p>
+                </div>`;
+                contentHtml += replyHtml;
+            }
+
+            switch(msg.type) {
+                case 'text': contentHtml += `<p class="whitespace-pre-wrap break-words">${msg.content}</p>`; break;
+                case 'image': contentHtml += `<img src="${msg.url}" class="rounded-lg shadow-md cursor-pointer" onclick="window.open('${msg.url}', '_blank')">`; break;
+                case 'video': contentHtml += `<video controls src="${msg.url}" class="rounded-lg shadow-md"></video>`; break;
+                case 'audio': contentHtml += `<audio controls src="${msg.url}"></audio>`; break;
+                case 'sticker': contentHtml += `<img src="${msg.url}" class="w-24 h-24 object-contain">`; break;
+                case 'gif': contentHtml += `<img src="${msg.url}" class="rounded-lg shadow-md giphy-gif">`; break;
+            }
+
+            const timestamp = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleString() : 'Sending...';
+            const statusIcon = getMessageStatusIcon(msg, isSent);
+
+            messageWrapper.innerHTML = `
+                <div class="max-w-xs lg:max-w-md">
+                    <div class="${isSent ? 'message-bubble-sent' : 'message-bubble-received'} p-3 rounded-lg shadow-sm">
+                        <div class="message-content">${contentHtml}</div>
+                    </div>
+                    <p class="text-xs text-theme-secondary mt-1 px-1 ${isSent ? 'text-right' : 'text-left'}">${timestamp} ${statusIcon}</p>
+                </div>
+            `;
+            messagesContainer.appendChild(messageWrapper);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+
+        function getMessageStatusIcon(msg, isSent) {
+            if (!isSent) return '';
+            if (msg.seenAt) {
+                return `<i class="fas fa-check-double delivered-icon seen-icon ml-1"></i>`;
+            } else if (msg.timestamp) {
+                return `<i class="fas fa-check-double delivered-icon ml-1"></i>`;
+            } else {
+                return `<i class="fas fa-spinner fa-spin text-theme-secondary ml-1"></i>`;
+            }
+        }
+
+        function updateMessageStatus(messageEl, msg) {
+            const timestampEl = messageEl.querySelector('.text-xs');
+            const newTimestamp = new Date(msg.timestamp.toDate()).toLocaleString();
+            const newIcon = getMessageStatusIcon(msg, true);
+            timestampEl.innerHTML = `${newTimestamp} ${newIcon}`;
+        }
+
+        async function sendMessage(type, content, url = null, replyToId = null) {
+            if (!currentChatId || (!content && !url)) return;
+            const messagesRef = collection(db, 'chats', currentChatId, 'messages');
+            const tempMessage = {
+                type, content, url, senderUid: currentUser.uid, timestamp: null, replyToId
+            };
+            displayMessage(tempMessage, null);
+            await addDoc(messagesRef, { type, content, url, senderUid: currentUser.uid, timestamp: serverTimestamp(), replyToId });
+        }
+
+        // Upload file to Cloudinary
+        async function uploadFile(file) {
+            if (!file) return;
+            document.getElementById('loading-spinner').classList.remove('hidden');
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', APP_CONFIG.cloudinaryConfig.upload_preset);
+
+            try {
+                const response = await fetch(`https://api.cloudinary.com/v1_1/${APP_CONFIG.cloudinaryConfig.cloud_name}/${file.type.startsWith('image/') ? 'image' : 'video'}/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await response.json();
+                const type = file.type.startsWith('image/') ? 'image' : 'video';
+                sendMessage(type, file.name, data.secure_url);
+            } catch (error) {
+                console.error("File upload failed:", error);
+                alert("Failed to upload file.");
+            } finally {
+                document.getElementById('loading-spinner').classList.add('hidden');
+            }
+        }
+        
+        // Upload audio to Cloudinary
+        async function uploadAudio(audioBlob) {
+            if (!audioBlob) return;
+            document.getElementById('loading-spinner').classList.remove('hidden');
+            const formData = new FormData();
+            formData.append('file', audioBlob);
+            formData.append('upload_preset', APP_CONFIG.cloudinaryConfig.upload_preset);
+
+            try {
+                const response = await fetch(`https://api.cloudinary.com/v1_1/${APP_CONFIG.cloudinaryConfig.cloud_name}/raw/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await response.json();
+                sendMessage('audio', 'Voice Message', data.secure_url);
+            } catch (error) {
+                console.error("Audio upload failed:", error);
+                alert("Failed to upload voice message.");
+            } finally {
+                document.getElementById('loading-spinner').classList.add('hidden');
+            }
+        }
+
+
+        // Update User Data
+        async function updateUserData(uid, data) {
+            const userDocRef = doc(db, "users", uid);
+            return updateDoc(userDocRef, data);
+        }
+
+        // Emoji and sticker
+        function initEmojiStickerPicker() {
+            const picker = document.getElementById('emoji-sticker-picker');
+            onSnapshot(doc(db, "siteSettings", "config"), (docSnap) => {
+                const stickers = docSnap.exists() ? docSnap.data().stickers || [] : [];
+                picker.innerHTML = '';
+                
+                const defaultEmojis = ['😭', '🥲', '😋', '🤡', '👽', '👺', '👹', '💀', '👿', '😈', '☠️', '🥰', '😲', '☹️', '😏', '🖕', '😘', '😂', '🙂', '😓', '😔', '😚', '🥺', '😳', '🤨', '🧐', '🤣', '😂', '😁', '😀', '😃', '😉', '😗', '😙', '🥳', '🫠', '🙃', '🥹', '🤤', '😝', '😐', '😑', '🤫', '🤔', '🫡', '😱', '🙄', '🧐', '🫤', '😲', '🤯', '😰', '😕', '😖', '😫', '😩', '😣', '😵', '😵‍💫', '🫨', '🤢', '🤕', '😷', '😇', '😎', '🤓', '🌝', '🌚', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😿', '😾', '🌜', '🌛', '🙊', '🙉', '🙈', '🔥', '❤️', '💘', '💝', '🩷', '💗', '💖', '💔', '❤️‍🩹', '❤️‍🔥', '💋', '♥️', '💟', '💕', '🫂', '🫀', '🫦', '👄', '👁️', '👀', '💪', '🤜', '🤛', '👎', '🫶', '🫴', '👍', '👋', '👊', '👌', '🫵', '✌️', '🤘', '🤟', '🤏', '👇', '👆', '☝️', '👈', '🙏', '🤝', '🖕', '🤦', '🤦🏼‍♀️', '💆🏼‍♀️', '🙎🏼‍♀️', '🙍🏼‍♀️', '🙇🏼‍♀️', '🧖🏼‍♀️', '🛀🏼', '👸🏼', '🕺🏼', '💑', '👩‍❤️‍💋‍👩', '👨‍❤️‍💋‍👨', '👩‍❤️‍👩', '👩🏼‍🍼', '🤰🏼', '💐', '🌺', '🥀', '🌹', '🌸', '🏵️', '🍃', '🍂', '🌱', '🌼', '🌱', '🌵', '🍀', '🌾', '🍄', '❄️', '⛄', '🌚', '🌝', '🌞', '🐼', '🦁', '🐯', '🐱', '🐸', '🐉', '🦕', '🦖', '🐩', '🦎', '🐕', '🐈', '🐕‍🦺', '🐈‍⬛', '🦮', '🐲', '🐃', '🐄', '🐑', '🐂', '🦬', '🦣', '🦥', '🐘', '🦛', '🦧', '🐒', '🐿️', '🐆', '🦍', '🪼', '🦑', '🐦‍🔥', '🦢', '🪿', '🐥', '🦃', '🪲', '🐚', '🐛', '🪼', '🦠', '🐞', '🐛', '🪳', '🌶️', '🍒', '🍊', '🍅', '🍍', '🍊', '🥑', '🍏', '🥒', '🫜', '🍞', '🫒', '🥜', '🍟', '🌭', '🍗', '🍟', '🧀', '🥐', '🥖', '🫕', '🧆', '🍣', '🥫', '🥨', '🍕', '🍘', '🥡', '🍘', '🍦', '🍢', '🍜', '🦞', '🍣', '🥡', '🍚', '🍱', '🍱', '🥮', '🥠', '🍡', '🍥', '🍘', '🍢', '🍨', '🍨', '🥧', '🍮', '🧁', '🍭', '🍬', '🫙', '🍿', '🧈', '🍫', '💍', '👑'];
+                  defaultEmojis.forEach(emoji => {
+                    const btn = document.createElement('button');
+                    btn.className = 'p-1 rounded-full hover:bg-blue-200 text-2xl';
+                    btn.textContent = emoji;
+                    btn.addEventListener('click', () => {
+                        document.getElementById('message-input').value += btn.textContent;
+                        document.getElementById('message-input').focus();
+                    });
+                    picker.appendChild(btn);
+                });
+                
+                stickers.forEach(sticker => {
+                    const img = document.createElement('img');
+                    img.src = sticker.url;
+                    img.className = 'w-12 h-12 object-contain cursor-pointer';
+                    img.addEventListener('click', () => {
+                        sendMessage('sticker', 'sticker', sticker.url);
+                        document.getElementById('emoji-sticker-picker').classList.add('hidden');
+                    });
+                    picker.appendChild(img);
+                });
+            });
+        }
+  // Global UI elements
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const authScreen = document.getElementById('auth-screen');
+        const mainApp = document.getElementById('main-app');
+        const chatListContainer = document.getElementById('chat-list-container');
+        const chatWindowWrapper = document.getElementById('chat-window-wrapper');
+        const backToChatsBtn = document.getElementById('back-to-chats-btn');
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const themeToggleButton = document.getElementById('theme-toggle-button');
+        const authForm = document.getElementById('auth-form');
+        const authToggleLink = document.getElementById('auth-toggle-link');
+        const authError = document.getElementById('auth-error');
+        const authToggleText = document.getElementById('auth-toggle-text');
+        const adminPanelButton = document.getElementById('admin-panel-button');
+        const adminPanel = document.getElementById('admin-panel');
+        const closeAdminPanel = document.getElementById('close-admin-panel');
+        const giphyBtn = document.getElementById('giphy-btn');
+        const giphyModal = document.getElementById('giphy-modal');
+        const closeGiphyModal = document.getElementById('close-giphy-modal');
+        const giphySearchInput = document.getElementById('giphy-search-input');
+        const giphyGrid = document.getElementById('giphy-grid');
+
+
+        // New UI elements for new features
+        const editProfileModal = document.getElementById('edit-profile-modal');
+        const editProfileButton = document.getElementById('edit-profile-button');
+        const closeEditProfileModal = document.getElementById('close-edit-profile-modal');
+        const profileAvatarPreview = document.getElementById('profile-avatar-preview');
+        const changeAvatarBtn = document.getElementById('change-avatar-btn');
+        const avatarInput = document.getElementById('avatar-input');
+        const displayNameInput = document.getElementById('display-name-input');
+        const saveProfileBtn = document.getElementById('save-profile-btn');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const replyBar = document.getElementById('reply-bar');
+        const replyText = document.getElementById('reply-text');
+        const cancelReplyBtn = document.getElementById('cancel-reply-btn');
+        const chatHeaderAvatar = document.getElementById('chat-header-avatar');
+        const deleteChatBtn = document.getElementById('delete-chat-btn');
+        const fullscreenImageModal = document.getElementById('fullscreen-image-modal');
+        const fullscreenImage = document.getElementById('fullscreen-image');
+        const recordVoiceBtn = document.getElementById('record-voice-btn');
+        const recordingStatus = document.getElementById('recording-status');
+
+
+        let isLogin = true;
+        let replyToMessageId = null;
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let gifSearchTimeout = null;
+
+        // --- Helper Functions ---
+        function showAuthScreen() {
+            authScreen.classList.remove('hidden');
+            authScreen.classList.add('flex');
+            mainApp.classList.add('hidden');
+            loadingSpinner.classList.add('hidden');
+        }
+
+        function showMainApp() {
+            authScreen.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            mainApp.classList.add('flex');
+            loadingSpinner.classList.add('hidden');
+            chatListContainer.classList.remove('hidden');
+            chatWindowWrapper.classList.add('hidden');
+        }
+  // --- NEW ADMIN PANEL LOGIC ---
+
+        async function loadAdminUsers() {
+            const userListEl = document.getElementById('admin-user-list');
+            userListEl.innerHTML = '<p class="text-theme-secondary">Loading users...</p>';
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, orderBy("displayName"));
+            const querySnapshot = await getDocs(q);
+            userListEl.innerHTML = '';
+            querySnapshot.forEach(doc => {
+                const user = doc.data();
+                const userEl = document.createElement('div');
+                userEl.className = 'p-3 border border-theme rounded-lg flex items-center justify-between hover:bg-theme-tertiary transition-colors';
+                userEl.innerHTML = `
+                    <div class="flex items-center">
+                        <img src="${user.photoURL}" class="w-10 h-10 rounded-full mr-3">
+                        <div>
+                            <p class="font-semibold text-theme-primary">${user.displayName}</p>
+                            <p class="text-sm text-theme-secondary">${user.email}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-bold text-theme-primary px-2 py-1 rounded-full ${user.isAdmin ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}">${user.isAdmin ? 'Admin' : 'User'}</span>
+                    </div>
+                `;
+                userListEl.appendChild(userEl);
+            });
+        }
+
+        function loadAdminStickers() {
+            const stickerListEl = document.getElementById('sticker-list-container');
+            onSnapshot(doc(db, "siteSettings", "config"), (docSnap) => {
+                const stickers = docSnap.exists() ? docSnap.data().stickers || [] : [];
+                stickerListEl.innerHTML = '';
+                if (stickers.length === 0) {
+                    stickerListEl.innerHTML = '<p class="text-theme-secondary">No stickers added yet.</p>';
+                    return;
+                }
+                stickers.forEach(sticker => {
+                    const stickerWrapper = document.createElement('div');
+                    stickerWrapper.className = 'relative group';
+                    stickerWrapper.innerHTML = `
+                        <img src="${sticker.url}" class="w-16 h-16 object-contain">
+                        <button class="remove-sticker-btn absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    `;
+                    stickerWrapper.querySelector('.remove-sticker-btn').addEventListener('click', () => removeSticker(sticker));
+                    stickerListEl.appendChild(stickerWrapper);
+                });
+            });
+        }
+
+        async function addSticker() {
+            const input = document.getElementById('new-sticker-url');
+            const url = input.value.trim();
+            if (!url) return;
+
+            const settingsDocRef = doc(db, "siteSettings", "config");
+            const newSticker = { url: url, addedAt: serverTimestamp() };
+            try {
+                await updateDoc(settingsDocRef, { stickers: arrayUnion(newSticker) });
+                input.value = '';
+                alert("Sticker added successfully!");
+            } catch (error) {
+                console.error("Error adding sticker:", error);
+                alert("Failed to add sticker.");
+            }
+        }
+
+        async function removeSticker(sticker) {
+            const settingsDocRef = doc(db, "siteSettings", "config");
+            try {
+                await updateDoc(settingsDocRef, { stickers: arrayRemove(sticker) });
+                alert("Sticker removed successfully!");
+            } catch (error) {
+                console.error("Error removing sticker:", error);
+                alert("Failed to remove sticker.");
+            }
+        }
+
+        // --- END NEW ADMIN PANEL LOGIC ---
+  // --- NEW FEATURE LOGIC ---
+
+        // Profile Customization
+        const editProfileModalLogic = () => {
+            editProfileButton.addEventListener('click', async (e) => {
+                e.preventDefault();
+                document.getElementById('user-menu').classList.add('hidden');
+                editProfileModal.classList.remove('hidden');
+                const userDocRef = doc(db, "users", currentUser.uid);
+                const userDocSnap = await getDoc(userDocRef);
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    profileAvatarPreview.src = userData.photoURL || `https://ui-avatars.com/api/?name=${userData.displayName}`;
+                    displayNameInput.value = userData.displayName || '';
+                }
+            });
+
+            closeEditProfileModal.addEventListener('click', () => {
+                editProfileModal.classList.add('hidden');
+            });
+
+            changeAvatarBtn.addEventListener('click', () => {
+                avatarInput.click();
+            });
+
+            avatarInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        profileAvatarPreview.src = e.target.result;
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+
+            saveProfileBtn.addEventListener('click', async () => {
+                loadingSpinner.classList.remove('hidden');
+                const newDisplayName = displayNameInput.value.trim();
+                let newPhotoURL = profileAvatarPreview.src;
+
+                if (avatarInput.files[0]) {
+                    // Upload new image to Cloudinary
+                    const formData = new FormData();
+                    formData.append('file', avatarInput.files[0]);
+                    formData.append('upload_preset', APP_CONFIG.cloudinaryConfig.upload_preset);
+
+                    try {
+                        const response = await fetch(`https://api.cloudinary.com/v1_1/${APP_CONFIG.cloudinaryConfig.cloud_name}/image/upload`, {
+                            method: 'POST',
+                            body: formData,
+                        });
+                        const data = await response.json();
+                        newPhotoURL = data.secure_url;
+                    } catch (error) {
+                        console.error("Error uploading profile picture:", error);
+                        alert("Failed to update profile picture. Please try again.");
+                        loadingSpinner.classList.add('hidden');
+                        return;
+                    }
+                }
+
+                // Update user data in Firestore
+                try {
+                    await updateUserData(currentUser.uid, {
+                        displayName: newDisplayName,
+                        photoURL: newPhotoURL
+                    });
+                    alert("Profile updated successfully!");
+                } catch (error) {
+                    console.error("Error updating user data:", error);
+                    alert("Failed to update profile. Please try again.");
+                } finally {
+                    loadingSpinner.classList.add('hidden');
+                    editProfileModal.classList.add('hidden');
+                }
+            });
+        };
+
+        // Message Reply
+        const messageReplyLogic = () => {
+            const messagesContainer = document.getElementById('messages-container');
+            messagesContainer.addEventListener('click', (e) => {
+                const messageWrapper = e.target.closest('.message-bubble-sent, .message-bubble-received');
+                if (messageWrapper) {
+                    const messageEl = messageWrapper.closest('[data-id]');
+                    if (messageEl) {
+                        replyToMessageId = messageEl.dataset.id;
+                        const messageContentEl = messageWrapper.querySelector('.message-content');
+                        replyText.textContent = messageContentEl.textContent || 'File/Media';
+                        replyBar.classList.remove('hidden');
+                        messageInput.focus();
+                    }
+                }
+            });
+
+            cancelReplyBtn.addEventListener('click', () => {
+                replyToMessageId = null;
+                replyBar.classList.add('hidden');
+            });
+
+            sendBtn.addEventListener('click', () => {
+                const input = document.getElementById('message-input');
+                if (input.value.trim()) {
+                    sendMessage('text', input.value.trim(), null, replyToMessageId);
+                    input.value = '';
+                    replyToMessageId = null;
+                    replyBar.classList.add('hidden');
+                }
+            });
+        };
+
+        // Theme Toggle
+        const themeToggleLogic = () => {
+            const htmlEl = document.documentElement;
+            const themeToggleBtn = document.getElementById('theme-toggle-button');
+            const iconEl = themeToggleBtn.querySelector('i');
+            const textEl = themeToggleBtn.querySelector('span');
+
+            const setTheme = (theme) => {
+                if (theme === 'dark') {
+                    htmlEl.classList.add('dark');
+                    iconEl.className = 'fas fa-moon mr-2';
+                    textEl.textContent = 'Switch to Light Mode';
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    htmlEl.classList.remove('dark');
+                    iconEl.className = 'fas fa-sun mr-2';
+                    textEl.textContent = 'Switch to Dark Mode';
+                    localStorage.setItem('theme', 'light');
+                }
+            };
+
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else {
+                setTheme('light');
+            }
+
+            themeToggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const currentTheme = htmlEl.classList.contains('dark') ? 'light' : 'dark';
+                setTheme(currentTheme);
+            });
+        };
+
+        // Fullscreen Image Logic
+        const fullscreenImageLogic = () => {
+            chatHeaderAvatar.addEventListener('click', () => {
+                fullscreenImage.src = chatHeaderAvatar.src;
+                fullscreenImageModal.classList.remove('hidden');
+            });
+        }
+
+        // Admin Panel Logic
+        const adminPanelLogic = () => {
+            adminPanelButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('user-menu').classList.add('hidden');
+                adminPanel.classList.remove('hidden');
+                document.getElementById('admin-tab-users').classList.remove('hidden');
+                document.getElementById('admin-tab-content').classList.add('hidden');
+                document.getElementById('admin-tab-registrations').classList.add('hidden');
+            });
+
+            closeAdminPanel.addEventListener('click', () => {
+                adminPanel.classList.add('hidden');
+            });
+
+            const tabLinks = document.querySelectorAll('.admin-tab-link');
+            const tabContents = document.querySelectorAll('.admin-tab-content');
+
+            tabLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    tabLinks.forEach(l => {
+                        l.classList.remove('bg-theme-tertiary', 'text-theme-primary', 'font-semibold');
+                        l.classList.add('text-theme-secondary', 'hover:bg-theme-tertiary', 'hover:text-theme-primary');
+                    });
+                    e.currentTarget.classList.add('bg-theme-tertiary', 'text-theme-primary', 'font-semibold');
+                    e.currentTarget.classList.remove('text-theme-secondary', 'hover:bg-theme-tertiary', 'hover:text-theme-primary');
+
+                    tabContents.forEach(content => content.classList.add('hidden'));
+
+                    const targetTabId = e.currentTarget.getAttribute('href').substring(1);
+                    document.getElementById(`admin-tab-${targetTabId}`).classList.remove('hidden');
+                    
+                    if (targetTabId === 'users') {
+                        loadAdminUsers();
+                    } else if (targetTabId === 'content') {
+                        loadAdminStickers();
+                    }
+                });
+            });
+
+            document.getElementById('add-sticker-btn').addEventListener('click', addSticker);
+        };
+        
+        // Voice Recording Logic
+        const voiceRecordingLogic = () => {
+            recordVoiceBtn.addEventListener('click', async () => {
+                if (isRecording) {
+                    mediaRecorder.stop();
+                    recordVoiceBtn.innerHTML = `<i class="fas fa-microphone w-4 mr-3"></i>Record Voice`;
+                    recordingStatus.classList.add('hidden');
+                    isRecording = false;
+                } else {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorder = new MediaRecorder(stream);
+                        audioChunks = [];
+                        
+                        mediaRecorder.ondataavailable = event => {
+                            audioChunks.push(event.data);
+                        };
+                        
+                        mediaRecorder.onstop = () => {
+                            const audioBlob = new Blob(audioChunks, { 'type' : 'audio/webm; codecs=opus' });
+                            uploadAudio(audioBlob);
+                            stream.getTracks().forEach(track => track.stop());
+                        };
+                        
+                        mediaRecorder.start();
+                        recordVoiceBtn.innerHTML = `<i class="fas fa-stop-circle w-4 mr-3"></i>Stop Recording`;
+                        recordingStatus.classList.remove('hidden');
+                        isRecording = true;
+
+                    } catch (err) {
+                        console.error("Microphone access denied or failed:", err);
+                        alert("Could not access microphone. Please allow microphone permissions.");
+                    }
+                }
+            });
+        };
+        
+        // --- GIPHY LOGIC ---
+        function searchGifs(query) {
+            if (!APP_CONFIG.GIPHY_API_KEY) {
+                alert("Giphy API Key is missing. Please add it to your script.");
+                return;
+            }
+            const url = query.trim() === '' ?
+                `https://api.giphy.com/v1/gifs/trending?api_key=${APP_CONFIG.GIPHY_API_KEY}&limit=25` :
+                `https://api.giphy.com/v1/gifs/search?api_key=${APP_CONFIG.GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=25`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    giphyGrid.innerHTML = '';
+                    if (data.data.length === 0) {
+                         giphyGrid.innerHTML = '<p class="text-theme-secondary text-center mt-4">No GIFs found.</p>';
+                    }
+                    data.data.forEach(gif => {
+                        const img = document.createElement('img');
+                        img.src = gif.images.fixed_height.url;
+                        img.alt = gif.title;
+                        img.addEventListener('click', () => {
+                            sendMessage('gif', 'GIF', gif.images.original.url);
+                            giphyModal.style.display = 'none';
+                            giphySearchInput.value = '';
+                        });
+                        giphyGrid.appendChild(img);
+                    });
+                })
+                .catch(error => {
+                    console.error("Error fetching GIFs:", error);
+                    giphyGrid.innerHTML = '<p class="text-red-500 text-center mt-4">Failed to load GIFs.</p>';
+                });
+        }
+        
+        function handleGiphySearch() {
+            if (gifSearchTimeout) {
+                clearTimeout(gifSearchTimeout);
+            }
+            gifSearchTimeout = setTimeout(() => {
+                searchGifs(giphySearchInput.value);
+            }, 500);
+        }
+        
+        // --- END GIPHY LOGIC ---
+        async function updateSessionToken(uid) {
+            const sessionToken = Math.random().toString(36).substring(2);
+            const sessionRef = ref(rtdb, `activeSessions/${uid}`);
+            await set(sessionRef, sessionToken);
+            localStorage.setItem('sessionToken', sessionToken);
+            return sessionToken;
+        }
+
+        function loadUI() {
+            if (!currentUser) return;
+            const userDocRef = doc(db, "users", currentUser.uid);
+            onSnapshot(userDocRef, (doc) => {
+                 if(doc.exists()) {
+                    const userData = doc.data();
+                    document.getElementById('user-avatar').src = userData.photoURL || `https://ui-avatars.com/api/?name=${userData.email.split('@')[0]}`;
+                 }
+            });
+            if(isAdmin) { document.getElementById('admin-panel-button').classList.remove('hidden'); }
+            loadUserList();
+            showMainApp();
+            initEmojiStickerPicker();
+            chatListContainer.classList.remove('hidden');
+        }
+
+
+        // Auth event listeners
+        authToggleLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLogin = !isLogin;
+            document.getElementById('auth-title').textContent = isLogin ? 'Login' : 'Sign Up';
+            document.getElementById('auth-button').textContent = isLogin ? 'Login' : 'Sign Up';
+            authToggleText.textContent = isLogin ? "Don't have an account?" : "Already have an account?";
+            authToggleLink.textContent = isLogin ? 'Sign Up' : 'Login';
+            authError.classList.add('hidden');
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loadingSpinner.classList.remove('hidden');
+            authError.classList.add('hidden');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            try {
+                if(isLogin) {
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    await updateSessionToken(userCredential.user.uid);
+                } else {
+                    const settingsDocSnap = await getDoc(doc(db, "siteSettings", "config"));
+                    const registrationsEnabled = settingsDocSnap.exists() ? settingsDocSnap.data().registrationsEnabled : true;
+                    if (!registrationsEnabled) {
+                        authError.textContent = "Sorry, new registrations are disabled by the admin.";
+                        authError.classList.remove('hidden');
+                        return;
+                    }
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    await updateSessionToken(userCredential.user.uid);
+                }
+            } catch (error) {
+                console.error("Firebase Auth Error:", error.code, error.message);
+                let errorMessage = "Authentication Error: Please try again.";
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+                    errorMessage = "Authentication Error: Invalid email or password.";
+                } else if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = "Authentication Error: This email is already registered.";
+                }
+                authError.textContent = errorMessage;
+                authError.classList.remove('hidden');
+            } finally {
+                loadingSpinner.classList.add('hidden');
+            }
+        });
+
+        // Other event listeners
+        document.getElementById('logout-button').addEventListener('click', () => {
+            const sessionRef = ref(rtdb, `activeSessions/${currentUser.uid}`);
+            remove(sessionRef);
+            signOut(auth);
+        });
+        document.getElementById('user-avatar').addEventListener('click', () => {
+            document.getElementById('user-menu').classList.toggle('hidden');
+        });
+        document.getElementById('message-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendBtn.click();
+            }
+        });
+        document.getElementById('attach-file-btn').addEventListener('click', () => document.getElementById('file-input').click());
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            if (e.target.files[0]) uploadFile(e.target.files[0]);
+        });
+        document.getElementById('delete-chat-btn').addEventListener('click', async () => {
+            if (!currentChatId || !currentChatUser) return;
+            const confirmation = confirm(`Are you sure you want to delete all messages with ${currentChatUser.displayName}? This action cannot be undone.`);
+            if (confirmation) {
+                loadingSpinner.classList.remove('hidden');
+                try {
+                    const messagesRef = collection(db, 'chats', currentChatId, 'messages');
+                    const querySnapshot = await getDocs(messagesRef);
+                    const batch = writeBatch(db);
+                    querySnapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    await batch.commit();
+                    document.getElementById('messages-container').innerHTML = '';
+                    alert('Chat history deleted successfully.');
+                } catch (error) {
+                    console.error("Error deleting chat:", error);
+                    alert("Failed to delete chat history.");
+                } finally {
+                    loadingSpinner.classList.add('hidden');
+                }
+            }
+        });
+        document.getElementById('emoji-sticker-btn').addEventListener('click', () => {
+            document.getElementById('emoji-sticker-picker').classList.toggle('hidden');
+        });
+        document.getElementById('more-options-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('more-options-menu').classList.toggle('hidden');
+        });
+        document.addEventListener('click', (e) => {
+            const moreOptionsMenu = document.getElementById('more-options-menu');
+            if (!moreOptionsMenu.classList.contains('hidden') && !moreOptionsMenu.contains(e.target) && !document.getElementById('more-options-btn').contains(e.target)) {
+                moreOptionsMenu.classList.add('hidden');
+            }
+        });
+        document.getElementById('chat-with-admin-btn').addEventListener('click', async () => {
+            const q = query(collection(db, "users"));
+            const snapshot = await getDocs(q);
+            let adminUser = null;
+            snapshot.forEach(doc => {
+                const user = doc.data();
+                if(user.isAdmin && user.uid !== currentUser.uid) {
+                    adminUser = user;
+                }
+            });
+            if (adminUser) {
+                startChat(adminUser);
+            } else {
+                alert("No available admins to chat with at the moment.");
+            }
+        });
+        backToChatsBtn.addEventListener('click', () => {
+            chatListContainer.classList.remove('hidden');
+            chatWindowWrapper.classList.add('hidden');
+            document.getElementById('chat-window').classList.add('hidden');
+            welcomeScreen.classList.remove('hidden');
+        });
+
+        // Giphy event listeners
+        giphyBtn.addEventListener('click', () => {
+            giphyModal.style.display = 'flex';
+            searchGifs('');
+        });
+
+        closeGiphyModal.addEventListener('click', () => {
+            giphyModal.style.display = 'none';
+            giphySearchInput.value = '';
+            giphyGrid.innerHTML = '';
+        });
+
+        giphySearchInput.addEventListener('input', handleGiphySearch);
+    </script>
+</body>
+</html>
+           
