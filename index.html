@@ -423,7 +423,22 @@
         // --- best-chat-part3.js का कोड यहाँ से शुरू होता है ---
 
         // Firebase and Cloudinary Configurations
-        const firebaseConfig = {
+        // Firebase and Cloudinary Configurations
+// Ab ye details environment variables se aayengi
+const firebaseConfig = {
+    apiKey: "AIzaSyD86N7zF7rm_0_E_PuoSdD6cwQTGmIlL7s",
+    authDomain: "dekha-5daeb.firebaseapp.com",
+    databaseURL: "https://dekha-5daeb-default-rtdb.firebaseio.com",
+    projectId: "dekha-5daeb",
+    storageBucket: "dekha-5daeb.firebasestorage.app",
+    messagingSenderId: "647841969799",
+    appId: "1:647841969799:web:c133fdc1cc8ea986846a22"
+};
+const cloudinaryConfig = { cloud_name: "dl4rnmjyn", upload_preset: "chatting" };
+const ADMIN_EMAIL = "admin@example.com";
+const GIPHY_API_KEY = "UmalJbfKMvbuarXuOCztHglcJFQZrNSr"; // अपनी Giphy API Key यहाँ डालें
+
+const firebaseConfig = {
     apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
     authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
     databaseURL: process.env.REACT_APP_FIREBASE_DATABASE_URL,
